@@ -13,7 +13,16 @@ pub fn initialize_db() -> Result<Arc<Mutex<Connection>>> {
         "CREATE TABLE IF NOT EXISTS data_mahasiswa (
             id INTEGER PRIMARY KEY,
             nama TEXT NOT NULL,
-            tgl_lahir DATE NOT NULL
+            tgl_lahir DATE NOT NULL,
+        )",
+        [],
+    )?;
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS user (
+            id INTEGER PRIMARY KEY,
+            username TEXT NOT NULL,
+            password TEXT NOT NULL,
+            token TEXT NOT NULL
         )",
         [],
     )?;
