@@ -12,10 +12,7 @@ use crate::{models::{CreateMahasiswa, Mahasiswa}, response_model::ResponseModel}
 
 pub async fn get_mahasiswa(
     Extension(conn): Extension<Arc<Mutex<Connection>>>,
-    header: TypedHeader<Authorization<Bearer>>
 ) -> Result<Response, (StatusCode, String)> {
-    // let message_val = header.token();
-    // println!("{}", message_val);
     let conn = conn.lock().map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to lock connection".to_string()))?;
     let mut stmt = conn.prepare("SELECT id, nama, tgl_lahir, user_id FROM data_mahasiswa")
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;

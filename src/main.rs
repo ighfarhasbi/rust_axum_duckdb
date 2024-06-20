@@ -4,6 +4,8 @@ mod models;
 mod router;
 mod response_model;
 mod user_handler;
+mod guard;
+mod jwt;
 
 #[tokio::main]
 async fn main() {

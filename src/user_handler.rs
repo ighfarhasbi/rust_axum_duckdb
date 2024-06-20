@@ -5,7 +5,6 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use axum_extra::{headers::{authorization::Bearer, Authorization}, TypedHeader};
 use duckdb::{params, Connection};
 use serde_json::json;
 use crate::{models::{ReqLogin, ReqUser}, response_model::{ResponseModel, ResponseUser}};
@@ -81,19 +80,18 @@ pub async fn login_user (
 }
 
 pub async fn logout_user(
-    authorization: TypedHeader<Authorization<Bearer>>,
-    conn: Extension<Arc<Mutex<Connection>>>
+    conn: Extension<Arc<Mutex<Connection>>>,
+    user: Extension<ResponseUser>
 ) -> Result<Response, (StatusCode, String)> {
-    let token = authorization.token();
-    println!("{}", token);
+    println!("dari fn logout {:?}", user.token);
     let conn = conn.lock().map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to lock connection".to_string()))?;
     let mut stmt = conn.prepare("UPDATE user SET token = NULL WHERE token = ?")
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let result = stmt.execute(params![token]);
+    let result = stmt.execute(params![user.token]);
     match result {
-        Ok(user) => {
-            if user == 0 {
-                Ok(StatusCode::UNAUTHORIZED.into_response())
+        Ok(res) => {
+            if res == 0 {
+                Ok((StatusCode::UNAUTHORIZED, Json(json!({"status": "Unauthorized" }))).into_response())
             } else {
                 Ok((StatusCode::OK, Json(json!({"status": "sukses" }))).into_response())
             }
@@ -102,6 +100,4 @@ pub async fn logout_user(
             Ok((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response())
         }
     }
-    // println!("{:?}", result);
-    // Ok(StatusCode::OK.into_response())
 }

@@ -7,7 +7,7 @@ pub struct ResponseModel<T> {
     pub data: Option<T>
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 pub struct ResponseUser  {
     pub id: i32,
     pub username: String,
