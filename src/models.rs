@@ -5,7 +5,7 @@ pub struct Mahasiswa {
     pub id: i32,
     pub nama: String,
     pub tgl_lahir: String,
-    pub user_id: i32
+    pub user_id: Option<i32>
 }
 
 #[derive(Deserialize)]

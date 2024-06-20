@@ -3,8 +3,6 @@ use axum::{
     http::StatusCode, 
     response::{IntoResponse, Response},
 };
-use axum_extra::{headers::{authorization::Bearer, Authorization}, TypedHeader};
-// use chrono::NaiveDate;
 use duckdb::{params, Connection};
 use serde_json::json;
 use std::{fs, path::Path, sync::{Arc, Mutex, MutexGuard}};
@@ -44,44 +42,17 @@ pub async fn get_mahasiswa(
 
 pub async fn add_mahasiswa(
     Extension(conn): Extension<Arc<Mutex<Connection>>>,
-    TypedHeader(authorization): TypedHeader<Authorization<Bearer>>,
     Json(item): Json<CreateMahasiswa>,
 ) -> Result<Response, (StatusCode, String)> {
-    let token = authorization.token(); // amil token dari auth di postman
-    
-    // mencari user yang melakukan method add ini
     let conn = conn.lock().map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to lock connection".to_string()))?;
-    let mut stmt = conn.prepare("SELECT id FROM user WHERE token =?")
+    let mut stmt = conn.prepare("INSERT INTO data_mahasiswa (id, nama, tgl_lahir) VALUES (?, ?, ?)")
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    struct User {id: i32} // struct untuk id user terlogin 
-    let user_id_result = stmt.query_map(params![token],
-        |row| {
-        Ok(User {id: row.get(0)?})
-    }).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    stmt.execute(params![item.id, item.nama, item.tgl_lahir])
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // mengubah tipe data dari MappedRows pada var user_id_result menjadi struck User
-    let mut id_result = 0;
-    for id_user in user_id_result {
-        let user_id = id_user.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        id_result = user_id.id;
-        // println!("{}", id_result);
-    }
+    to_parquet(&conn); // buat file parquet
 
-    // cek apakah id user terlogin ada
-    if id_result != 0 {
-        stmt = conn.prepare("INSERT INTO data_mahasiswa (id, nama, tgl_lahir, user_id) VALUES (?, ?, ?, ?)")
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        stmt.execute(params![item.id, item.nama, item.tgl_lahir, id_result])
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-        to_parquet(&conn); // buat file parquet
-
-        Ok((StatusCode::OK, Json(json!({"status": "success"}))).into_response())
-    } else {
-        Ok((StatusCode::UNAUTHORIZED, Json(json!({"status": "unauthorized"}))).into_response())
-    }
-
-    
+    Ok((StatusCode::OK, Json(json!({"status": "success"}))).into_response())
 }
 
 pub async fn update_mahasiswa (conn: Extension<Arc<Mutex<Connection>>>, id: JsonPath<i32>, Json(item): Json<Mahasiswa>) -> Result<Response, (StatusCode, String)> {
@@ -169,3 +140,45 @@ fn to_parquet(conn: &MutexGuard<Connection>) {
     // jika folder src/parquet ada, maka pindahkan file .parquet
     let _rename = fs::rename(src_path, dest_path).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
 }
+
+// pub async fn add_mahasiswa(
+//     Extension(conn): Extension<Arc<Mutex<Connection>>>,
+//     TypedHeader(authorization): TypedHeader<Authorization<Bearer>>,
+//     Json(item): Json<CreateMahasiswa>,
+// ) -> Result<Response, (StatusCode, String)> {
+//     let token = authorization.token(); // amil token dari auth di postman
+    
+//     // mencari user yang melakukan method add ini
+//     let conn = conn.lock().map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to lock connection".to_string()))?;
+//     let mut stmt = conn.prepare("SELECT id FROM user WHERE token =?")
+//         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+//     struct User {id: i32} // struct untuk id user terlogin 
+//     let user_id_result = stmt.query_map(params![token],
+//         |row| {
+//         Ok(User {id: row.get(0)?})
+//     }).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+//     // mengubah tipe data dari MappedRows pada var user_id_result menjadi struck User
+//     let mut id_result = 0;
+//     for id_user in user_id_result {
+//         let user_id = id_user.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+//         id_result = user_id.id;
+//         // println!("{}", id_result);
+//     }
+
+//     // cek apakah id user terlogin ada
+//     if id_result != 0 {
+//         stmt = conn.prepare("INSERT INTO data_mahasiswa (id, nama, tgl_lahir, user_id) VALUES (?, ?, ?, ?)")
+//             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+//         stmt.execute(params![item.id, item.nama, item.tgl_lahir, id_result])
+//             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+//         to_parquet(&conn); // buat file parquet
+
+//         Ok((StatusCode::OK, Json(json!({"status": "success"}))).into_response())
+//     } else {
+//         Ok((StatusCode::UNAUTHORIZED, Json(json!({"status": "unauthorized"}))).into_response())
+//     }
+
+    
+// }
