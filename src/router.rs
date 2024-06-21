@@ -14,13 +14,13 @@ use duckdb::Connection;
 pub fn create_router(conn: Arc<Mutex<Connection>>) -> Router {
     Router::new()
         .route("/mahasiswa", get(get_mahasiswa))
-        .route("/user/logout", post(logout_user))
         .route("/mahasiswa", post(add_mahasiswa))
-        .route_layer(middleware::from_fn(guard_route))
         .route("/mahasiswa/:id", put(update_mahasiswa))
         .route("/mahasiswa/:id", delete(delete_mahasiswa))
+        .route("/export-mahasiswa/:nama_file", get(export_mahasiswa))
+        .route("/user/logout", post(logout_user))
+        .route_layer(middleware::from_fn(guard_route))
         .route("/user", post(add_user))
         .route("/user/login", post(login_user))
-        .route("/export-mahasiswa/:nama_file", get(export_mahasiswa))
         .layer(Extension(conn))
 }
