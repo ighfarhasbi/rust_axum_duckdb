@@ -11,5 +11,20 @@ pub struct ResponseModel<T> {
 pub struct ResponseUser  {
     pub id: i32,
     pub username: String,
+    // pub token: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct ResponseLoginUser  {
+    pub id: i32,
+    pub username: String,
     pub token: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct ResponseLoginRefUser  {
+    pub id: i32,
+    pub username: String,
+    pub token: String,
+    pub refresh_token: String,
 }
