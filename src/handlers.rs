@@ -141,6 +141,7 @@ fn to_parquet(conn: &MutexGuard<Connection>) {
     let _rename = fs::rename(src_path, dest_path).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
 }
 
+// ini yang langsung ambil token dari request auth tanpa middleware
 // pub async fn add_mahasiswa(
 //     Extension(conn): Extension<Arc<Mutex<Connection>>>,
 //     TypedHeader(authorization): TypedHeader<Authorization<Bearer>>,

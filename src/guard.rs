@@ -1,13 +1,16 @@
-use std::sync::{Arc, Mutex};
+use std::{future::Future, pin::Pin, sync::{Arc, Mutex}};
 
 use axum::{
-    extract::Extension, http::{Request, StatusCode}, middleware::Next, response::Response
+    extract::Extension, http::{HeaderValue, Request, StatusCode}, middleware::Next, response::Response
     };
-use axum_extra::headers::{authorization::Bearer, Authorization, HeaderMapExt};
+use axum_extra::headers::{authorization::Bearer, Authorization, Header, HeaderMapExt};
 use axum::body::Body;
 use duckdb::{params, Connection};
 
 use crate::{jwt::{is_valid, refresh_access_token}, response_model::ResponseLoginRefUser};
+
+// Definisikan tipe untuk fungsi yang akan dipanggil secara rekursif
+type GuardRouteFuture = Pin<Box<dyn Future<Output = Result<Response, (StatusCode, String)>> + Send>>;
 
 pub async fn guard_route (
     conn: Extension<Arc<Mutex<Connection>>>,
@@ -16,6 +19,7 @@ pub async fn guard_route (
 ) -> Result<Response, (StatusCode, String) >{
 
     let conn2 = conn.clone();
+    let conn3 = conn.clone();
     // ambil token dulu
     let token = request
     .headers().typed_get::<Authorization<Bearer>>()
@@ -54,8 +58,18 @@ pub async fn guard_route (
             match new_acc_token {
                 Ok(new_access_token) => { 
                     // println!("access token baru => {:?}", new_acc_token);
-                    let _ = update_token(conn2, new_access_token, token);
-                    // disini harusnya fungsi rekursifnya, manggil si fn guard_route
+                    let _ = update_token(conn2, new_access_token.clone(), token);
+
+                    // Update token di header request
+                    let headers = request.headers_mut();
+                    headers.insert(
+                        Authorization::<Bearer>::name(),
+                        HeaderValue::from_str(&format!("Bearer {}", new_access_token)).unwrap(),
+                    );
+
+                    // Panggil ulang guard_route dengan token yang diperbarui
+                    return Box::pin(guard_route(conn3, request, next)).await;
+
                 }
                 Err(_) => {return Err((StatusCode::UNAUTHORIZED, "Token expired".to_string()));}  
             }

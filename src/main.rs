@@ -6,6 +6,9 @@ mod response_model;
 mod user_handler;
 mod guard;
 mod jwt;
+mod minio_handlers;
+mod minio_models;
+mod minio_client;
 
 #[tokio::main]
 async fn main() {
